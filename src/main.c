@@ -57,24 +57,50 @@ int main(int argc, char *argv[]) {
 
   glViewport(0, 0, 800, 600);
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-  Shader *shader = shader_create("./assets/shaders/default.vert",
-                                 "./assets/shaders/default.frag");
-
+  shader_t shader = shader_create("./assets/shaders/default.vert",
+                                  "./assets/shaders/default.frag");
   float vertices[] = {
-      // positions        // colors         // texture coords
-      0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // top right
-      0.5f,  -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // bottom right
-      -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // bottom left
-      -0.5f, 0.5f,  0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f  // top left
-  };
+      // positions          // texture coords
+      // Front face
+      -0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 0.5f, -0.5f, 0.5f, 1.0f, 0.0f, 0.5f, 0.5f,
+      0.5f, 1.0f, 1.0f, -0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
+
+      // Back face
+      -0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.5f,
+      0.5f, -0.5f, 0.0f, 1.0f, -0.5f, 0.5f, -0.5f, 1.0f, 1.0f,
+
+      // Left face
+      -0.5f, -0.5f, -0.5f, 0.0f, 0.0f, -0.5f, -0.5f, 0.5f, 1.0f, 0.0f, -0.5f,
+      0.5f, 0.5f, 1.0f, 1.0f, -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+
+      // Right face
+      0.5f, -0.5f, 0.5f, 0.0f, 0.0f, 0.5f, -0.5f, -0.5f, 1.0f, 0.0f, 0.5f, 0.5f,
+      -0.5f, 1.0f, 1.0f, 0.5f, 0.5f, 0.5f, 0.0f, 1.0f,
+
+      // Top face
+      -0.5f, 0.5f, 0.5f, 0.0f, 0.0f, 0.5f, 0.5f, 0.5f, 1.0f, 0.0f, 0.5f, 0.5f,
+      -0.5f, 1.0f, 1.0f, -0.5f, 0.5f, -0.5f, 0.0f, 1.0f,
+
+      // Bottom face
+      -0.5f, -0.5f, -0.5f, 0.0f, 1.0f, 0.5f, -0.5f, -0.5f, 1.0f, 1.0f, 0.5f,
+      -0.5f, 0.5f, 1.0f, 0.0f, -0.5f, -0.5f, 0.5f, 0.0f, 0.0f};
 
   // load texture
   unsigned int wall_texture = texture_load("assets/wall.jpg", GL_RGB);
-  unsigned int smiley_texture = texture_load("assets/awesomeface.png", GL_RGBA);
 
   // ebo
-  unsigned int indices[] = {0, 1, 3, 1, 2, 3};
-
+  unsigned int indices[] = {// Front
+                            0, 1, 2, 2, 3, 0,
+                            // Back
+                            4, 5, 6, 6, 7, 4,
+                            // Left
+                            8, 9, 10, 10, 11, 8,
+                            // Right
+                            12, 13, 14, 14, 15, 12,
+                            // Top
+                            16, 17, 18, 18, 19, 16,
+                            // Bottom
+                            20, 21, 22, 22, 23, 20};
   unsigned int EBO;
   glGenBuffers(1, &EBO);
 
@@ -98,35 +124,19 @@ int main(int argc, char *argv[]) {
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
   // position
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void *)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void *)0);
   glEnableVertexAttribArray(0);
 
-  // color
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+  // tex coords
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                         (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
-
-  // tex coords
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                        (void *)(6 * sizeof(float)));
-  glEnableVertexAttribArray(2);
 
   // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   shader_use(shader);
 
-  // create transformation matrix
-  mat4 trans = GLM_MAT4_IDENTITY_INIT;
-  glm_translate(trans, (vec3){0.5f, -0.5f, 0.0f});
-  glm_rotate(trans, glm_rad(90.0f), (vec3){0.0f, 0.0f, 1.0f});
-
-  mat4 trans2 = GLM_MAT4_IDENTITY_INIT;
-  glm_translate(trans2, (vec3){-0.5f, 0.5f, 0.0f});
-
-  shader_set_mat4fv(shader, "transform", trans);
-  shader_set_1i(shader, "texture1", 0);
-  shader_set_1i(shader, "texture2", 1);
-
-  float scale = 1.0f;
+  shader_set_1i(shader, "aTexture", 0);
+  glEnable(GL_DEPTH_TEST);
 
   while (!glfwWindowShouldClose(window)) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -138,21 +148,36 @@ int main(int argc, char *argv[]) {
     glViewport(0, 0, fb_width, fb_height);
 
     glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     texture_use(wall_texture, GL_TEXTURE0);
-    texture_use(smiley_texture, GL_TEXTURE1);
 
-    glm_rotate(trans, glm_rad(1.0f), (vec3){0.0f, 0.0f, 1.0f});
-    shader_set_mat4fv(shader, "transform", trans);
-    glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    mat4 view = GLM_MAT4_IDENTITY_INIT;
+    glm_translate(view, (vec3){0.0f, 0.0f, -4.0f});
 
-    scale = sin(glfwGetTime());
-    glm_scale(trans2, (vec3){scale, scale, scale});
-    shader_set_mat4fv(shader, "transform", trans2);
-    glm_scale(trans2, (vec3){1.0f / scale, 1.0f / scale, 1.0f / scale});
+    mat4 proj;
+    glm_perspective(glm_rad(45.0f), 8.0f / 6.0f, 0.1f, 100.0f, proj);
+
+    shader_set_mat4fv(shader, "view", view);
+    shader_set_mat4fv(shader, "proj", proj);
+
+    vec3 variations[] = {{0.0f, 0.0f, 0.0f},    {2.0f, 5.0f, -15.0f},
+                         {-1.5f, -2.2f, -2.5f}, {-3.8f, -2.0f, -12.3f},
+                         {2.4f, -0.4f, -3.5f},  {-1.7f, 3.0f, -7.5f},
+                         {1.3f, -2.0f, -2.5f},  {1.5f, 2.0f, -2.5f},
+                         {1.5f, 0.2f, -1.5f},   {-1.3f, 1.0f, -1.5f}};
+
     glBindVertexArray(VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    for (int i = 0; i < 10; i++) {
+      mat4 model = GLM_MAT4_IDENTITY_INIT;
+      glm_translate(model, variations[i]);
+      if (i % 3 == 0) {
+        glm_rotate(model, glfwGetTime() * glm_rad(50.0f),
+                   (vec3){0.5f, 1.0f, -0.5f});
+      }
+      shader_set_mat4fv(shader, "model", model);
+      glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+    }
 
     glfwSwapBuffers(window);
     glfwPollEvents();

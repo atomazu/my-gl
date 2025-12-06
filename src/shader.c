@@ -4,12 +4,8 @@
 #include <stdlib.h>
 #include "utils.h"
 
-struct Shader {
-  unsigned int id;
-};
-
-Shader *shader_create(const char *vertex_path, const char *fragment_path) {
-  Shader *shader = malloc(sizeof(Shader));
+shader_t shader_create(const char *vertex_path, const char *fragment_path) {
+  shader_t shader;
 
   unsigned int vertex_shader = glCreateShader(GL_VERTEX_SHADER);
   char *vs_src = read_file(vertex_path, nullptr);
@@ -41,14 +37,14 @@ Shader *shader_create(const char *vertex_path, const char *fragment_path) {
   }
   free(fs_src);
 
-  shader->id = glCreateProgram();
-  glAttachShader(shader->id, vertex_shader);
-  glAttachShader(shader->id, fragment_shader);
-  glLinkProgram(shader->id);
+  shader = glCreateProgram();
+  glAttachShader(shader, vertex_shader);
+  glAttachShader(shader, fragment_shader);
+  glLinkProgram(shader);
 
-  glGetProgramiv(shader->id, GL_LINK_STATUS, &success);
+  glGetProgramiv(shader, GL_LINK_STATUS, &success);
   if (!success) {
-    glGetProgramInfoLog(shader->id, 512, NULL, info_log);
+    glGetProgramInfoLog(shader, 512, NULL, info_log);
     puts(info_log);
     exit(1);
   }
@@ -59,22 +55,18 @@ Shader *shader_create(const char *vertex_path, const char *fragment_path) {
   return shader;
 }
 
-void shader_destroy(Shader *shader) {
-  glDeleteProgram(shader->id);
-  free(shader);
+void shader_destroy(shader_t shader) { glDeleteProgram(shader); }
+
+void shader_use(shader_t shader) { glUseProgram(shader); }
+
+void shader_set_1i(shader_t shader, const char *name, int value) {
+  glUniform1i(glGetUniformLocation(shader, name), value);
 }
 
-void shader_use(Shader *shader) { glUseProgram(shader->id); }
-
-void shader_set_1i(Shader *shader, const char *name, int value) {
-  glUniform1i(glGetUniformLocation(shader->id, name), value);
+void shader_set_1f(shader_t shader, const char *name, float value) {
+  glUniform1f(glGetUniformLocation(shader, name), value);
 }
 
-void shader_set_1f(Shader *shader, const char *name, float value) {
-  glUniform1f(glGetUniformLocation(shader->id, name), value);
-}
-
-void shader_set_mat4fv(Shader *shader, const char *name, mat4 value) {
-  glUniformMatrix4fv(glGetUniformLocation(shader->id, name), 1, GL_FALSE,
-                     value[0]);
+void shader_set_mat4fv(shader_t shader, const char *name, mat4 value) {
+  glUniformMatrix4fv(glGetUniformLocation(shader, name), 1, GL_FALSE, value[0]);
 }
