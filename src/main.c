@@ -4,34 +4,7 @@
 #include <cglm/cglm.h>
 #include <stdio.h>
 #include "shader.h"
-
-unsigned int texture_load(char *path, int format) {
-  stbi_set_flip_vertically_on_load(true);
-
-  int width, height, channel_count;
-  unsigned char *data = stbi_load(path, &width, &height, &channel_count, 0);
-
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  if (data) {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, format,
-                 GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
-    stbi_image_free(data);
-  } else {
-    puts("failed to load image");
-    exit(1);
-  }
-
-  return texture;
-}
-
-void texture_use(unsigned int texture, unsigned int unit) {
-  glActiveTexture(unit);
-  glBindTexture(GL_TEXTURE_2D, texture);
-}
+#include "texture.h"
 
 int main(int argc, char *argv[]) {
 
@@ -86,7 +59,7 @@ int main(int argc, char *argv[]) {
       -0.5f, 0.5f, 1.0f, 0.0f, -0.5f, -0.5f, 0.5f, 0.0f, 0.0f};
 
   // load texture
-  unsigned int wall_texture = texture_load("assets/wall.jpg", GL_RGB);
+  texture_t wall_texture = texture_load("assets/wall.jpg", GL_RGB);
 
   // ebo
   unsigned int indices[] = {// Front
@@ -138,6 +111,10 @@ int main(int argc, char *argv[]) {
   shader_set_1i(shader, "aTexture", 0);
   glEnable(GL_DEPTH_TEST);
 
+  int element = 0;
+  double interval = 3.0;
+  double last_time = 0.0;
+
   while (!glfwWindowShouldClose(window)) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, GLFW_KEY_ESCAPE);
@@ -152,20 +129,34 @@ int main(int argc, char *argv[]) {
 
     texture_use(wall_texture, GL_TEXTURE0);
 
+    vec3 variations[] = {{0.0f, 0.0f, 0.0f},    {2.0f, 5.0f, -15.0f},
+                         {-1.5f, -2.2f, -2.5f}, {-3.8f, -2.0f, -12.3f},
+                         {2.4f, -0.4f, -3.5f},  {-1.7f, 3.0f, -7.5f},
+                         {1.3f, -2.0f, -2.5f},  {1.5f, 2.0f, -2.5f},
+                         {1.5f, 0.2f, -1.5f},   {-1.3f, 1.0f, -1.5f}};
+
+    float radius = 10.0f;
+    float cam_x = sin(glfwGetTime()) * radius;
+    float cam_z = cos(glfwGetTime()) * radius;
+
+    double current_time = glfwGetTime();
+    if (current_time - last_time >= interval) {
+      element++;
+      last_time = current_time;
+    }
+
     mat4 view = GLM_MAT4_IDENTITY_INIT;
-    glm_translate(view, (vec3){0.0f, 0.0f, -4.0f});
+    vec3 eye = {cam_x, 0.0f, cam_z};
+    vec3 up = {0.0f, 1.0f, 0.0f};
+    vec3 *center = &variations[element % 9];
+
+    glm_lookat(eye, *center, up, view);
 
     mat4 proj;
     glm_perspective(glm_rad(45.0f), 8.0f / 6.0f, 0.1f, 100.0f, proj);
 
     shader_set_mat4fv(shader, "view", view);
     shader_set_mat4fv(shader, "proj", proj);
-
-    vec3 variations[] = {{0.0f, 0.0f, 0.0f},    {2.0f, 5.0f, -15.0f},
-                         {-1.5f, -2.2f, -2.5f}, {-3.8f, -2.0f, -12.3f},
-                         {2.4f, -0.4f, -3.5f},  {-1.7f, 3.0f, -7.5f},
-                         {1.3f, -2.0f, -2.5f},  {1.5f, 2.0f, -2.5f},
-                         {1.5f, 0.2f, -1.5f},   {-1.3f, 1.0f, -1.5f}};
 
     glBindVertexArray(VAO);
     for (int i = 0; i < 10; i++) {
