@@ -111,11 +111,18 @@ int main(int argc, char *argv[]) {
   shader_set_1i(shader, "aTexture", 0);
   glEnable(GL_DEPTH_TEST);
 
-  int element = 0;
-  double interval = 3.0;
-  double last_time = 0.0;
+  // set up camera
+  vec3 camera_pos = {0.0f, 0.0f, 3.0f};
+  vec3 camera_dir = {0.0f, 0.0f, -1.0f};
+  vec3 camera_up = {0.0f, 1.0f, 0.0f};
+  float speed = 10.0f;
+  float last_frame = 0.0f;
 
   while (!glfwWindowShouldClose(window)) {
+    float delta_time = glfwGetTime() - last_frame;
+    last_frame = glfwGetTime();
+
+    // close window if esc is pressed
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
       glfwSetWindowShouldClose(window, GLFW_KEY_ESCAPE);
 
@@ -127,36 +134,53 @@ int main(int argc, char *argv[]) {
     glClear(GL_COLOR_BUFFER_BIT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    texture_use(wall_texture, GL_TEXTURE0);
-
-    vec3 variations[] = {{0.0f, 0.0f, 0.0f},    {2.0f, 5.0f, -15.0f},
-                         {-1.5f, -2.2f, -2.5f}, {-3.8f, -2.0f, -12.3f},
-                         {2.4f, -0.4f, -3.5f},  {-1.7f, 3.0f, -7.5f},
-                         {1.3f, -2.0f, -2.5f},  {1.5f, 2.0f, -2.5f},
-                         {1.5f, 0.2f, -1.5f},   {-1.3f, 1.0f, -1.5f}};
-
-    float radius = 10.0f;
-    float cam_x = sin(glfwGetTime()) * radius;
-    float cam_z = cos(glfwGetTime()) * radius;
-
-    double current_time = glfwGetTime();
-    if (current_time - last_time >= interval) {
-      element++;
-      last_time = current_time;
+    // move camera
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+      vec3 camera_front;
+      glm_vec3_copy(camera_dir, camera_front);
+      glm_vec3_scale(camera_front, speed * delta_time, camera_front);
+      glm_vec3_add(camera_pos, camera_front, camera_pos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+      vec3 camera_front;
+      glm_vec3_copy(camera_dir, camera_front);
+      glm_vec3_scale(camera_front, speed * delta_time, camera_front);
+      glm_vec3_sub(camera_pos, camera_front, camera_pos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+      vec3 camera_right;
+      glm_vec3_cross(camera_dir, camera_up, camera_right);
+      glm_vec3_normalize(camera_right);
+      glm_vec3_scale(camera_right, speed * delta_time, camera_right);
+      glm_vec3_add(camera_pos, camera_right, camera_pos);
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+      vec3 camera_right;
+      glm_vec3_cross(camera_dir, camera_up, camera_right);
+      glm_vec3_normalize(camera_right);
+      glm_vec3_scale(camera_right, speed * delta_time, camera_right);
+      glm_vec3_sub(camera_pos, camera_right, camera_pos);
     }
 
-    mat4 view = GLM_MAT4_IDENTITY_INIT;
-    vec3 eye = {cam_x, 0.0f, cam_z};
-    vec3 up = {0.0f, 1.0f, 0.0f};
-    vec3 *center = &variations[element % 9];
+    vec3 center;
+    glm_vec3_add(camera_pos, camera_dir, center);
 
-    glm_lookat(eye, *center, up, view);
+    mat4 view = GLM_MAT4_IDENTITY_INIT;
+    glm_lookat(camera_pos, center, camera_up, view);
 
     mat4 proj;
     glm_perspective(glm_rad(45.0f), 8.0f / 6.0f, 0.1f, 100.0f, proj);
 
     shader_set_mat4fv(shader, "view", view);
     shader_set_mat4fv(shader, "proj", proj);
+
+    // draw cubes
+    texture_use(wall_texture, GL_TEXTURE0);
+    vec3 variations[] = {{0.0f, 0.0f, 0.0f},    {2.0f, 5.0f, -15.0f},
+                         {-1.5f, -2.2f, -2.5f}, {-3.8f, -2.0f, -12.3f},
+                         {2.4f, -0.4f, -3.5f},  {-1.7f, 3.0f, -7.5f},
+                         {1.3f, -2.0f, -2.5f},  {1.5f, 2.0f, -2.5f},
+                         {1.5f, 0.2f, -1.5f},   {-1.3f, 1.0f, -1.5f}};
 
     glBindVertexArray(VAO);
     for (int i = 0; i < 10; i++) {
