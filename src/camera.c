@@ -39,6 +39,8 @@ void camera_projection(Camera *camera, mat4 *projection) {
 void camera_translate(Camera *camera, vec3 translation) {
   vec3 camera_front;
   glm_vec3_copy(camera->direction, camera_front);
+  camera_front[1] = 0;
+  glm_normalize(camera_front);
   glm_vec3_scale(camera_front, translation[2], camera_front);
   glm_vec3_add(camera->position, camera_front, camera->position);
 
