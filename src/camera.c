@@ -26,10 +26,36 @@ void camera_rotate(Camera *camera, vec2 rotation, bool clamp) {
   glm_normalize(camera->direction);
 }
 
+void lookat(vec3 eye, vec3 center, vec3 up, mat4 dest) {
+  vec3 dir;
+  glm_vec3_sub(eye, center, dir);
+  glm_normalize(dir);
+
+  vec3 right;
+  glm_vec3_cross(up, dir, right);
+  glm_normalize(right);
+
+  vec3 cam_up;
+  glm_vec3_cross(dir, right, cam_up);
+  glm_normalize(up);
+
+  mat4 translation = {{1.0f, 0.0f, 0.0f, 0.0f},
+                      {0.0f, 1.0f, 0.0f, 0.0f},
+                      {0.0f, 0.0f, 1.0f, 0.0f},
+                      {-eye[0], -eye[1], -eye[2], 1.0f}};
+
+  mat4 orientation = {{right[0], cam_up[0], dir[0], 0.0f},
+                      {right[1], cam_up[1], dir[1], 0.0f},
+                      {right[2], cam_up[2], dir[2], 0.0f},
+                      {0.0f, 0.0f, 0.0f, 1.0f}};
+
+  glm_mat4_mul(orientation, translation, dest);
+}
+
 void camera_view(Camera *camera, vec3 world_up, mat4 *view) {
   vec3 center;
   glm_vec3_add(camera->position, camera->direction, center);
-  glm_lookat(camera->position, center, world_up, *view);
+  lookat(camera->position, center, world_up, *view);
 }
 
 void camera_projection(Camera *camera, mat4 *projection) {
@@ -39,8 +65,6 @@ void camera_projection(Camera *camera, mat4 *projection) {
 void camera_translate(Camera *camera, vec3 translation) {
   vec3 camera_front;
   glm_vec3_copy(camera->direction, camera_front);
-  camera_front[1] = 0;
-  glm_normalize(camera_front);
   glm_vec3_scale(camera_front, translation[2], camera_front);
   glm_vec3_add(camera->position, camera_front, camera->position);
 
