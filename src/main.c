@@ -11,6 +11,7 @@
 typedef struct {
   vec3 position;
   vec2 texture_position;
+  vec3 normal;
 } Vertex;
 
 void cursor_pos_callback(GLFWwindow *window, double xpos, double ypos);
@@ -85,42 +86,42 @@ int main(int argc, char *argv[]) {
   // vbo
   unsigned int VBO;
   glGenBuffers(1, &VBO);
+  Vertex vertices[] = {
+      // Front face (Normal: 0, 0, 1)
+      {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+      {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, 1.0f}},
+      {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
+      {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, 1.0f}},
 
-  Vertex vertices[] = {// Front face
-                       {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}},
-                       {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}},
-                       {{0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}},
-                       {{-0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}},
+      // Back face (Normal: 0, 0, -1)
+      {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+      {{0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {0.0f, 0.0f, -1.0f}},
+      {{0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
+      {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 0.0f, -1.0f}},
 
-                       // Back face
-                       {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}},
-                       {{0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}},
-                       {{0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}},
-                       {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}},
+      // Left face (Normal: -1, 0, 0)
+      {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
+      {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}, {-1.0f, 0.0f, 0.0f}},
+      {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
+      {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}, {-1.0f, 0.0f, 0.0f}},
 
-                       // Left face
-                       {{-0.5f, -0.5f, -0.5f}, {0.0f, 0.0f}},
-                       {{-0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}},
-                       {{-0.5f, 0.5f, 0.5f}, {1.0f, 1.0f}},
-                       {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}},
+      // Right face (Normal: 1, 0, 0)
+      {{0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+      {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+      {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
+      {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}, {1.0f, 0.0f, 0.0f}},
 
-                       // Right face
-                       {{0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}},
-                       {{0.5f, -0.5f, -0.5f}, {1.0f, 0.0f}},
-                       {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}},
-                       {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f}},
+      // Top face (Normal: 0, 1, 0)
+      {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+      {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}},
+      {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
+      {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}},
 
-                       // Top face
-                       {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f}},
-                       {{0.5f, 0.5f, 0.5f}, {1.0f, 0.0f}},
-                       {{0.5f, 0.5f, -0.5f}, {1.0f, 1.0f}},
-                       {{-0.5f, 0.5f, -0.5f}, {0.0f, 1.0f}},
-
-                       // Bottom face
-                       {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}},
-                       {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}},
-                       {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}},
-                       {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}}};
+      // Bottom face (Normal: 0, -1, 0)
+      {{-0.5f, -0.5f, -0.5f}, {0.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
+      {{0.5f, -0.5f, -0.5f}, {1.0f, 1.0f}, {0.0f, -1.0f, 0.0f}},
+      {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}, {0.0f, -1.0f, 0.0f}},
+      {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}, {0.0f, -1.0f, 0.0f}}};
 
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -142,6 +143,11 @@ int main(int argc, char *argv[]) {
                         (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
+  // normals
+  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void *)(5 * sizeof(float)));
+  glEnableVertexAttribArray(2);
+
   // light vao
   unsigned int light_VAO;
   glGenVertexArrays(1, &light_VAO);
@@ -158,6 +164,11 @@ int main(int argc, char *argv[]) {
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
                         (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
+
+  // normals
+  glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void *)(5 * sizeof(float)));
+  glEnableVertexAttribArray(2);
 
   // draw order
   glEnable(GL_DEPTH_TEST);
@@ -184,6 +195,8 @@ int main(int argc, char *argv[]) {
     shader_set_mat4fv(shader, "view", view);
     shader_set_mat4fv(shader, "proj", proj);
     shader_set_vec3fv(shader, "lightColor", light_color);
+    shader_set_vec3fv(shader, "lightPos", light_position);
+    shader_set_vec3fv(shader, "objectColor", object_color);
 
     // draw cubes
     texture_use(wall_texture, GL_TEXTURE0);
@@ -201,12 +214,6 @@ int main(int argc, char *argv[]) {
         glm_rotate(model, glfwGetTime() * glm_rad(50.0f),
                    (vec3){0.5f, 1.0f, -0.5f});
       }
-      vec3 scaled_color;
-      float distance = glm_vec3_distance(variations[i], light_position);
-      glm_vec3_scale(light_color, 5 / distance, scaled_color);
-      glm_vec3_add(object_color, scaled_color, scaled_color);
-      glm_vec3_scale(scaled_color, 5 / distance, scaled_color);
-      shader_set_vec3fv(shader, "objectColor", scaled_color);
       shader_set_mat4fv(shader, "model", model);
       glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     }
