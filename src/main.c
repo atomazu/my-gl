@@ -187,8 +187,8 @@ int main(int argc, char *argv[]) {
     camera_projection(&camera, &proj);
 
     vec3 light_position = {0.0f, -5.0f, 0.0f};
-    vec3 light_color = {1.0f, 1.0f, 1.0f};
-    vec3 object_color = {1.0f, 1.0f, 0.2f};
+    vec3 light_color = {3.0f, 3.0f, 3.0f};
+    vec3 object_color = {1.0f, 1.0f, 1.0f};
 
     shader_use(shader);
     shader_set_1i(shader, "aTexture", 0);
@@ -197,6 +197,7 @@ int main(int argc, char *argv[]) {
     shader_set_vec3fv(shader, "lightColor", light_color);
     shader_set_vec3fv(shader, "lightPos", light_position);
     shader_set_vec3fv(shader, "objectColor", object_color);
+    shader_set_vec3fv(shader, "viewPos", camera.position);
 
     // draw cubes
     texture_use(wall_texture, GL_TEXTURE0);
