@@ -6,6 +6,7 @@
 #include "shader.h"
 #include "texture.h"
 #include "camera.h"
+#include "utils.h"
 
 typedef struct {
   vec3 position;
@@ -24,6 +25,7 @@ int main(int argc, char *argv[]) {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
   glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+  glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
   GLFWwindow *window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
   if (window == NULL) {
@@ -41,6 +43,10 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  glEnable(GL_DEBUG_OUTPUT);
+  glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+  glDebugMessageCallback(opengl_debug_callback, NULL);
+
   Camera camera;
   camera_init((vec3){0.0f, 0.0f, -4.0f}, (vec3){0.0f, 0.0f, 1.0f},
               (vec2){90.0f, 0.0f}, 60.0f, &camera);
@@ -49,6 +55,37 @@ int main(int argc, char *argv[]) {
   glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
   shader_t shader = shader_create("./assets/shaders/default.vert",
                                   "./assets/shaders/default.frag");
+
+  shader_t light_shader = shader_create("./assets/shaders/light.vert",
+                                        "./assets/shaders/light.frag");
+
+  // load texture
+  texture_t wall_texture = texture_load("assets/wall.jpg", GL_RGB);
+
+  // ebo
+  unsigned int indices[] = {// Front
+                            0, 1, 2, 2, 3, 0,
+                            // Back
+                            4, 5, 6, 6, 7, 4,
+                            // Left
+                            8, 9, 10, 10, 11, 8,
+                            // Right
+                            12, 13, 14, 14, 15, 12,
+                            // Top
+                            16, 17, 18, 18, 19, 16,
+                            // Bottom
+                            20, 21, 22, 22, 23, 20};
+  unsigned int EBO;
+  glGenBuffers(1, &EBO);
+
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
+               GL_STATIC_DRAW);
+
+  // vbo
+  unsigned int VBO;
+  glGenBuffers(1, &VBO);
+
   Vertex vertices[] = {// Front face
                        {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}},
                        {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}},
@@ -85,40 +122,13 @@ int main(int argc, char *argv[]) {
                        {{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f}},
                        {{-0.5f, -0.5f, 0.5f}, {0.0f, 0.0f}}};
 
-  // load texture
-  texture_t wall_texture = texture_load("assets/wall.jpg", GL_RGB);
-
-  // ebo
-  unsigned int indices[] = {// Front
-                            0, 1, 2, 2, 3, 0,
-                            // Back
-                            4, 5, 6, 6, 7, 4,
-                            // Left
-                            8, 9, 10, 10, 11, 8,
-                            // Right
-                            12, 13, 14, 14, 15, 12,
-                            // Top
-                            16, 17, 18, 18, 19, 16,
-                            // Bottom
-                            20, 21, 22, 22, 23, 20};
-  unsigned int EBO;
-  glGenBuffers(1, &EBO);
-
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-               GL_STATIC_DRAW);
-
-  // vbo
-  unsigned int VBO;
-  glGenBuffers(1, &VBO);
-
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
   // vao
-  unsigned int VAO;
-  glGenVertexArrays(1, &VAO);
-  glBindVertexArray(VAO);
+  unsigned int crate_VAO;
+  glGenVertexArrays(1, &crate_VAO);
+  glBindVertexArray(crate_VAO);
 
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -132,10 +142,24 @@ int main(int argc, char *argv[]) {
                         (void *)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
 
-  // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-  shader_use(shader);
+  // light vao
+  unsigned int light_VAO;
+  glGenVertexArrays(1, &light_VAO);
+  glBindVertexArray(light_VAO);
 
-  shader_set_1i(shader, "aTexture", 0);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+  // position
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void *)0);
+  glEnableVertexAttribArray(0);
+
+  // tex coords
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+                        (void *)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+
+  // draw order
   glEnable(GL_DEPTH_TEST);
 
   float last_frame = 0.0f;
@@ -144,16 +168,22 @@ int main(int argc, char *argv[]) {
     last_frame = glfwGetTime();
 
     handle_window(window);
-
-    glClear(GL_COLOR_BUFFER_BIT);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     mat4 view, proj;
     handle_camera(window, &camera, delta_time);
     camera_view(&camera, (vec3){0.0f, 1.0f, 0.0f}, &view);
     camera_projection(&camera, &proj);
+
+    vec3 light_position = {0.0f, -5.0f, 0.0f};
+    vec3 light_color = {1.0f, 1.0f, 1.0f};
+    vec3 object_color = {1.0f, 1.0f, 0.2f};
+
+    shader_use(shader);
+    shader_set_1i(shader, "aTexture", 0);
     shader_set_mat4fv(shader, "view", view);
     shader_set_mat4fv(shader, "proj", proj);
+    shader_set_vec3fv(shader, "lightColor", light_color);
 
     // draw cubes
     texture_use(wall_texture, GL_TEXTURE0);
@@ -163,7 +193,7 @@ int main(int argc, char *argv[]) {
                          {1.3f, -2.0f, -2.5f},  {1.5f, 2.0f, -2.5f},
                          {1.5f, 0.2f, -1.5f},   {-1.3f, 1.0f, -1.5f}};
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(crate_VAO);
     for (int i = 0; i < 10; i++) {
       mat4 model = GLM_MAT4_IDENTITY_INIT;
       glm_translate(model, variations[i]);
@@ -171,9 +201,27 @@ int main(int argc, char *argv[]) {
         glm_rotate(model, glfwGetTime() * glm_rad(50.0f),
                    (vec3){0.5f, 1.0f, -0.5f});
       }
+      vec3 scaled_color;
+      float distance = glm_vec3_distance(variations[i], light_position);
+      glm_vec3_scale(light_color, 5 / distance, scaled_color);
+      glm_vec3_add(object_color, scaled_color, scaled_color);
+      glm_vec3_scale(scaled_color, 5 / distance, scaled_color);
+      shader_set_vec3fv(shader, "objectColor", scaled_color);
       shader_set_mat4fv(shader, "model", model);
       glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
     }
+
+    // draw light
+    shader_use(light_shader);
+    shader_set_mat4fv(light_shader, "view", view);
+    shader_set_mat4fv(light_shader, "proj", proj);
+
+    mat4 model = GLM_MAT4_IDENTITY_INIT;
+    glm_translate(model, light_position);
+    shader_set_mat4fv(light_shader, "model", model);
+
+    glBindVertexArray(light_VAO);
+    glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 
     glfwSwapBuffers(window);
     glfwPollEvents();

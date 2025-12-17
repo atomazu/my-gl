@@ -37,7 +37,6 @@ void lookat(vec3 eye, vec3 center, vec3 up, mat4 dest) {
 
   vec3 cam_up;
   glm_vec3_cross(dir, right, cam_up);
-  glm_normalize(up);
 
   mat4 translation = {{1.0f, 0.0f, 0.0f, 0.0f},
                       {0.0f, 1.0f, 0.0f, 0.0f},

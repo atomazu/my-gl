@@ -70,3 +70,7 @@ void shader_set_1f(shader_t shader, const char *name, float value) {
 void shader_set_mat4fv(shader_t shader, const char *name, mat4 value) {
   glUniformMatrix4fv(glGetUniformLocation(shader, name), 1, GL_FALSE, value[0]);
 }
+
+void shader_set_vec3fv(shader_t shader, const char *name, vec3 value) {
+  glUniform3fv(glGetUniformLocation(shader, name), 1, value);
+}
